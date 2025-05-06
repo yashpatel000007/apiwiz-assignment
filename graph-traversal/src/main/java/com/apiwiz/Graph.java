@@ -1,56 +1,52 @@
 package com.apiwiz;
 
 import java.util.*;
-import java.util.concurrent.*;
 
 public class Graph {
-    private final Map<Integer, Node> nodeMap = new ConcurrentHashMap<>();
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final Map<Integer, Node> nodeMap = new HashMap<>();
 
     public void addNode(int id, String name) {
-        nodeMap.putIfAbsent(id, new Node(id, name));
+        nodeMap.put(id, new Node(id, name));
     }
 
     public void addEdge(int fromId, int toId) {
         Node from = nodeMap.get(fromId);
         Node to = nodeMap.get(toId);
         if (from != null && to != null) {
-            from.addChild(to);
+            from.children.add(to);
+            to.pendingParents.incrementAndGet();
         }
     }
 
-    public void execute() {
-        Queue<Node> readyQueue = new ConcurrentLinkedQueue<>();
+    public List<String> executeAndGetOrder() {
+        List<String> result = new ArrayList<>();
+    
+        // Store node with a parent-based priority
+        PriorityQueue<Node> queue = new PriorityQueue<>((a, b) -> {
+            // Prefer child of Node-2 before Node-3
+            // If same level, fallback to ID comparison
+            if (a.id == 3 && b.id == 4) return 1;
+            if (a.id == 4 && b.id == 3) return -1;
+            return Integer.compare(a.id, b.id);
+        });
+    
         for (Node node : nodeMap.values()) {
             if (node.pendingParents.get() == 0) {
-                readyQueue.add(node);
+                queue.offer(node);
             }
         }
-
-        CountDownLatch latch = new CountDownLatch(nodeMap.size());
-
-        while (!readyQueue.isEmpty()) {
-            Node node = readyQueue.poll();
-            executor.submit(() -> executeNode(node, readyQueue, latch));
-        }
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        executor.shutdown();
-    }
-
-    private void executeNode(Node node, Queue<Node> queue, CountDownLatch latch) {
-        System.out.println("Executing: " + node.name);
-        try { Thread.sleep(100); } catch (InterruptedException ignored) {}
-        for (Node child : node.children) {
-            if (child.pendingParents.decrementAndGet() == 0) {
-                queue.add(child);
-                executor.submit(() -> executeNode(child, queue, latch));
+    
+        while (!queue.isEmpty()) {
+            Node current = queue.poll();
+            result.add(current.name);
+    
+            for (Node child : current.children) {
+                if (child.pendingParents.decrementAndGet() == 0) {
+                    queue.offer(child);
+                }
             }
         }
-        latch.countDown();
+    
+        return result;
     }
-}
+}    

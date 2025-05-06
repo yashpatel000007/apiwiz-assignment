@@ -1,24 +1,35 @@
 package com.apiwiz;
 
+import java.util.*;
+
 public class GraphApp {
     public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
         Graph graph = new Graph();
 
-        // Sample input
-        graph.addNode(1, "A");
-        graph.addNode(2, "B");
-        graph.addNode(3, "C");
-        graph.addNode(4, "D");
-        graph.addNode(5, "E");
+        // Read number of vertices
+        int numVertices = Integer.parseInt(scanner.nextLine().trim());
+        for (int i = 0; i < numVertices; i++) {
+            String[] parts = scanner.nextLine().trim().split(":");
+            int id = Integer.parseInt(parts[0]);
+            String name = parts[1];
+            graph.addNode(id, name);
+        }
 
-        graph.addEdge(1, 2); // A -> B
-        graph.addEdge(1, 3); // A -> C
-        graph.addEdge(2, 4); // B -> D
-        graph.addEdge(3, 4); // C -> D
-        graph.addEdge(4, 5); // D -> E
+        // Read number of edges
+        int numEdges = Integer.parseInt(scanner.nextLine().trim());
+        for (int i = 0; i < numEdges; i++) {
+            String[] parts = scanner.nextLine().trim().split(":");
+            int from = Integer.parseInt(parts[0]);
+            int to = Integer.parseInt(parts[1]);
+            graph.addEdge(from, to);
+        }
 
-        System.out.println("Starting graph execution:");
-        graph.execute();
-        System.out.println("Execution complete.");
+        // Execute the graph and print result
+        List<String> result = graph.executeAndGetOrder();
+        for (String nodeName : result) {
+            System.out.println(nodeName);
+        }
+        System.out.println(result.size());
     }
 }
